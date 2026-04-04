@@ -1,0 +1,29 @@
+[package]
+name = "kron-auth"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Authentication and authorization for KRON — JWT RS256, Argon2id, TOTP, RBAC."
+
+[dependencies]
+kron-types = { path = "../kron-types" }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+argon2 = { workspace = true }
+jsonwebtoken = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+axum = { workspace = true }
+dashmap = { workspace = true }
+metrics = { workspace = true }
+tracing = { workspace = true }
+once_cell = { workspace = true }
+totp-rs = { workspace = true }
+sha2 = { workspace = true }
+
+[lints]
+workspace = true

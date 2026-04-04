@@ -1,0 +1,38 @@
+[package]
+name = "kron-bus"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Message bus abstraction for KRON — Redpanda and embedded disk-backed WAL channel."
+
+[features]
+# Enable Redpanda (librdkafka) support for Standard/Enterprise tiers.
+# Not enabled by default because it requires cmake + libssl at build time.
+# CI (ubuntu-latest) enables this explicitly. Local Windows dev uses embedded bus only.
+redpanda = ["dep:rdkafka"]
+
+[dependencies]
+kron-types = { path = "../kron-types" }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+metrics = { workspace = true }
+bytes = { workspace = true }
+futures = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+xxhash-rust = { workspace = true }
+rdkafka = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { workspace = true }
+
+[lints]
+workspace = true

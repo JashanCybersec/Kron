@@ -1,0 +1,76 @@
+# KRON Nano — Single-container deployment
+#
+# All KRON services run inside one kron-nano binary. No ClickHouse or Redpanda
+# required. DuckDB is embedded; the WAL bus runs on local disk.
+#
+# Usage:
+#   cp deploy/nano/kron-nano.default.toml /etc/kron/kron.toml
+#   # Edit /etc/kron/kron.toml and set auth.jwt_private_key_path etc.
+#   docker compose -f deploy/nano/docker-compose.yml up -d
+
+services:
+  kron-nano:
+    image: kron-nano:latest
+    build:
+      context: ../..
+      dockerfile: deploy/nano/Dockerfile
+    container_name: kron-nano
+    restart: unless-stopped
+
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+      KRON_LOG_LEVEL: ${KRON_LOG_LEVEL:-info}
+      KRON_STREAM_RULES_DIR: /var/lib/kron/rules
+      KRON_STREAM_MODELS_DIR: /var/lib/kron/models
+      KRON_STREAM_TENANT_IDS: ${KRON_STREAM_TENANT_IDS:-}
+      KRON_STREAM_ALERT_THRESHOLD: ${KRON_STREAM_ALERT_THRESHOLD:-40}
+
+    ports:
+      - "${API_PORT:-8080}:8080"         # REST / WebSocket API
+      - "${GRPC_PORT:-50051}:50051"      # gRPC agent intake
+      - "${HTTP_INTAKE_PORT:-8081}:8081" # HTTP batch intake
+      - "${SYSLOG_UDP_PORT:-514}:514/udp"
+      - "${SYSLOG_TCP_PORT:-6514}:6514"
+      - "${METRICS_PORT:-9101}:9101"     # Prometheus metrics
+
+    volumes:
+      - kron-config:/etc/kron:ro
+      - kron-data:/var/lib/kron
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: kron-nano-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    depends_on:
+      - kron-nano
+
+volumes:
+  kron-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /etc/kron
+  kron-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/lib/kron
+  prometheus-data:

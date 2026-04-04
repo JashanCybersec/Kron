@@ -1,0 +1,34 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Cargo lock for libraries (keep for binaries)
+# Cargo.lock  ← intentionally not ignored for kron-nano/kron-standard
+
+# Secrets and keys
+*.pem
+*.key
+*.p12
+kron.toml
+!*.default.toml
+!*.example.toml
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude session data
+.claude/
+
+# Flutter build artifacts
+kron-mobile/build/
+kron-mobile/.dart_tool/
+kron-mobile/.flutter-plugins
+kron-mobile/.flutter-plugins-dependencies

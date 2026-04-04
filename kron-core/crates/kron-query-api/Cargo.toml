@@ -1,0 +1,61 @@
+[package]
+name = "kron-query-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "REST and WebSocket API server for KRON — Axum, JWT auth, tenant isolation."
+
+[[bin]]
+name = "kron-query-api"
+path = "src/main.rs"
+
+[lib]
+name = "kron_query_api"
+path = "src/lib.rs"
+
+[features]
+default = []
+# Enables compliance reporting and SOAR routes (Standard/Enterprise tier).
+# Not enabled by kron-nano; routes compile out cleanly without this feature.
+standard = ["dep:kron-soar", "dep:kron-compliance"]
+
+[dependencies]
+kron-types  = { path = "../kron-types" }
+kron-storage = { path = "../kron-storage" }
+kron-bus    = { path = "../kron-bus" }
+kron-auth   = { path = "../kron-auth" }
+kron-ai     = { path = "../kron-ai" }
+kron-stream = { path = "../kron-stream" }
+kron-alert  = { path = "../kron-alert" }
+# Standard/Enterprise only — compiled in when `standard` feature is active.
+kron-soar       = { path = "../../../kron-standard/crates/kron-soar", optional = true }
+kron-compliance = { path = "../../../kron-standard/crates/kron-compliance", optional = true }
+axum            = { workspace = true }
+tower           = { workspace = true }
+tower-http      = { workspace = true }
+thiserror       = { workspace = true }
+tokio           = { workspace = true }
+serde           = { workspace = true }
+serde_json      = { workspace = true }
+tracing         = { workspace = true }
+tracing-subscriber = { workspace = true }
+metrics         = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+uuid            = { workspace = true }
+chrono          = { workspace = true }
+once_cell       = { workspace = true }
+utoipa          = { workspace = true }
+utoipa-axum     = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+anyhow          = { workspace = true }
+jsonwebtoken    = { workspace = true }
+argon2          = { workspace = true }
+futures         = { workspace = true }
+bytes           = { workspace = true }
+dashmap         = { workspace = true }
+serde_yaml      = { workspace = true }
+
+[lints]
+workspace = true

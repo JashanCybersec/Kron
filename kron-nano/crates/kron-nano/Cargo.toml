@@ -1,0 +1,27 @@
+[package]
+name = "kron-nano"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Single-binary KRON SIEM deployment — all services in one process, DuckDB storage."
+
+[[bin]]
+name = "kron-nano"
+path = "src/main.rs"
+
+[dependencies]
+kron-types      = { path = "../../../kron-core/crates/kron-types" }
+kron-collector  = { path = "../../../kron-core/crates/kron-collector" }
+kron-normalizer = { path = "../../../kron-core/crates/kron-normalizer" }
+kron-stream     = { path = "../../../kron-core/crates/kron-stream" }
+kron-alert      = { path = "../../../kron-core/crates/kron-alert" }
+kron-query-api  = { path = "../../../kron-core/crates/kron-query-api" }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow         = { workspace = true }
+
+[lints]
+workspace = true

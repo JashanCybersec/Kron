@@ -1,0 +1,25 @@
+[package]
+name = "kron-soar"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "SOAR playbook engine for KRON — automated response and case management."
+
+[[bin]]
+name = "kron-soar"
+path = "src/main.rs"
+
+[dependencies]
+kron-types = { path = "../../../kron-core/crates/kron-types" }
+kron-bus = { path = "../../../kron-core/crates/kron-bus" }
+kron-storage = { path = "../../../kron-core/crates/kron-storage", features = ["clickhouse-backend"] }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+
+[lints]
+workspace = true

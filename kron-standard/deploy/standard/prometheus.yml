@@ -1,0 +1,21 @@
+# Prometheus scrape config for KRON Standard (one job per service)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: kron-collector
+    static_configs:
+      - targets: [kron-collector:9101]
+  - job_name: kron-normalizer
+    static_configs:
+      - targets: [kron-normalizer:9102]
+  - job_name: kron-stream
+    static_configs:
+      - targets: [kron-stream:9103]
+  - job_name: kron-alert
+    static_configs:
+      - targets: [kron-alert:9104]
+  - job_name: kron-query-api
+    static_configs:
+      - targets: [kron-query-api:9105]

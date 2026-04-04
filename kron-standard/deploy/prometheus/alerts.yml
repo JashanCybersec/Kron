@@ -1,0 +1,211 @@
+# KRON Prometheus Alert Rules
+#
+# Loaded by the Prometheus server in deploy/compose/prometheus.yml
+# and deploy/helm/charts/kron-monitoring/templates/alert-rules.yaml.
+#
+# Severity conventions (matches KRON internal severity):
+#   critical → pages on-call immediately (P1 equivalent)
+#   warning  → fires ticket, pages secondary after 5 min (P2/P3)
+#   info     → logged, no page
+
+groups:
+
+  # ── Service availability ────────────────────────────────────────────────────
+  - name: kron.service_availability
+    rules:
+
+      - alert: KronServiceDown
+        expr: up{job=~"kron-.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          runbook: RB-001
+        annotations:
+          summary: "KRON service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been unreachable for more than 1 minute. Check pod logs and restart if needed. Runbook: RB-001."
+
+      - alert: KronServiceRestartingFrequently
+        expr: rate(kube_pod_container_status_restarts_total{namespace="kron"}[15m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          runbook: RB-001
+        annotations:
+          summary: "{{ $labels.container }} restarting frequently"
+          description: "Container {{ $labels.container }} has restarted more than once in the last 15 minutes. Possible crash loop or OOM."
+
+  # ── Event pipeline throughput ────────────────────────────────────────────────
+  - name: kron.pipeline
+    rules:
+
+      - alert: KronEventIngestionDropped
+        expr: rate(kron_collector_events_dropped_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: critical
+          runbook: RB-003
+        annotations:
+          summary: "Events being dropped at collector"
+          description: "Collector is dropping {{ $value | humanize }} events/sec. Likely backpressure from full Redpanda topic or saturated network."
+
+      - alert: KronNormalizerLagHigh
+        expr: kron_consumer_lag{consumer_group="kron-normalizer"} > 100000
+        for: 5m
+        labels:
+          severity: warning
+          runbook: RB-003
+        annotations:
+          summary: "Normalizer consumer lag is high: {{ $value | humanize }} messages"
+          description: "The normalizer is behind. Scale up replicas or investigate slow normalisation. Runbook: RB-003."
+
+      - alert: KronNormalizerLagCritical
+        expr: kron_consumer_lag{consumer_group="kron-normalizer"} > 1000000
+        for: 2m
+        labels:
+          severity: critical
+          runbook: RB-003
+        annotations:
+          summary: "Normalizer lag CRITICAL: {{ $value | humanize }} messages"
+          description: "Over 1 million messages backlogged. Events may be delayed by > 30 minutes. Immediate action required."
+
+      - alert: KronStreamProcessorLagHigh
+        expr: kron_consumer_lag{consumer_group="kron-stream"} > 50000
+        for: 5m
+        labels:
+          severity: warning
+          runbook: RB-003
+        annotations:
+          summary: "Stream processor lag: {{ $value | humanize }} messages"
+          description: "Detection engine is behind. Alert latency may exceed SLA."
+
+      - alert: KronPipelineLatencyHigh
+        expr: histogram_quantile(0.99, rate(kron_pipeline_latency_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "End-to-end pipeline p99 latency > 5 seconds"
+          description: "99th percentile pipeline latency is {{ $value | humanizeDuration }}. SLA target is < 2 minutes."
+
+  # ── Storage ─────────────────────────────────────────────────────────────────
+  - name: kron.storage
+    rules:
+
+      - alert: ClickHouseWriteErrors
+        expr: rate(kron_storage_errors_total{operation="insert"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: critical
+          runbook: RB-002
+        annotations:
+          summary: "ClickHouse write errors: {{ $value | humanize }}/sec"
+          description: "Events are failing to persist to ClickHouse. Check disk space and connectivity. Runbook: RB-002."
+
+      - alert: ClickHouseQueryLatencyHigh
+        expr: histogram_quantile(0.99, rate(kron_storage_query_duration_seconds_bucket{operation="query"}[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          runbook: RB-002
+        annotations:
+          summary: "ClickHouse query p99 > 2 seconds"
+          description: "Slow queries detected. Check for table bloat, missing TTL runs, or long-running merges."
+
+      - alert: ClickHouseDiskLow
+        expr: kron_clickhouse_disk_free_bytes / kron_clickhouse_disk_total_bytes < 0.15
+        for: 5m
+        labels:
+          severity: warning
+          runbook: RB-002
+        annotations:
+          summary: "ClickHouse disk < 15% free: {{ $value | humanizePercentage }}"
+          description: "Disk will fill in the next few hours at current ingest rate. Run TTL merge or expand volume."
+
+      - alert: ClickHouseDiskCritical
+        expr: kron_clickhouse_disk_free_bytes / kron_clickhouse_disk_total_bytes < 0.05
+        for: 1m
+        labels:
+          severity: critical
+          runbook: RB-002
+        annotations:
+          summary: "ClickHouse disk CRITICAL: {{ $value | humanizePercentage }} free"
+          description: "Immediate action required. ClickHouse will stop accepting writes when disk is full."
+
+  # ── Alert delivery ───────────────────────────────────────────────────────────
+  - name: kron.notifications
+    rules:
+
+      - alert: KronNotificationFailure
+        expr: rate(kron_notification_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          runbook: RB-004
+        annotations:
+          summary: "Alert notifications failing: {{ $labels.channel }}"
+          description: "{{ $labels.channel }} notification channel has {{ $value | humanize }} failures/sec. Check provider status. Runbook: RB-004."
+
+      - alert: KronP1AlertUndelivered
+        expr: kron_alert_notification_latency_seconds{severity="p1"} > 120
+        for: 1m
+        labels:
+          severity: critical
+          runbook: RB-004
+        annotations:
+          summary: "P1 alert not delivered within 2 minutes"
+          description: "A P1 alert has gone undelivered for {{ $value | humanizeDuration }}. Check all notification channels immediately."
+
+  # ── Security ─────────────────────────────────────────────────────────────────
+  - name: kron.security
+    rules:
+
+      - alert: KronBruteForceDetected
+        expr: rate(kron_auth_failures_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          runbook: RB-006
+        annotations:
+          summary: "Brute force login attempts detected"
+          description: "{{ $value | humanize }} failed login attempts/sec. Source IPs may be attacking KRON itself."
+
+      - alert: KronCrossTenanAccessAttempt
+        expr: increase(kron_cross_tenant_access_attempts_total[5m]) > 0
+        labels:
+          severity: critical
+          runbook: RB-006
+        annotations:
+          summary: "CRITICAL: Cross-tenant access attempt detected"
+          description: "A request attempted to access data across tenant boundaries. Immediate investigation required. Runbook: RB-006."
+
+      - alert: KronJWTForgeryAttempt
+        expr: increase(kron_jwt_validation_failures_total{reason="signature_invalid"}[5m]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          runbook: RB-006
+        annotations:
+          summary: "Possible JWT forgery attack: {{ $value }} invalid signatures in 5m"
+          description: "High volume of JWT signature failures. May indicate an active attack against the auth system."
+
+  # ── Backup monitoring ────────────────────────────────────────────────────────
+  - name: kron.backup
+    rules:
+
+      - alert: KronBackupMissed
+        expr: time() - kron_last_backup_timestamp_seconds{type="clickhouse_incremental"} > 7200
+        labels:
+          severity: warning
+          runbook: RB-005
+        annotations:
+          summary: "ClickHouse backup not run in > 2 hours"
+          description: "Last successful backup was {{ $value | humanizeDuration }} ago. RPO target is 1 hour."
+
+      - alert: KronFullBackupMissed
+        expr: time() - kron_last_backup_timestamp_seconds{type="clickhouse_full"} > 90000
+        labels:
+          severity: warning
+          runbook: RB-005
+        annotations:
+          summary: "Daily full backup overdue"
+          description: "Daily full backup has not run in {{ $value | humanizeDuration }}. Check backup job."

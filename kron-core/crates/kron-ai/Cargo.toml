@@ -1,0 +1,24 @@
+[package]
+name = "kron-ai"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "AI/ML inference for KRON — ONNX models and Mistral 7B, all running locally."
+
+[dependencies]
+kron-types = { path = "../kron-types" }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+ort = { workspace = true }
+ndarray = { workspace = true }
+once_cell = { workspace = true }
+tracing = { workspace = true }
+metrics = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,7 @@
+/target
+*.env
+.env*
+*.pem
+*.key
+cosign.key
+**/.DS_Store

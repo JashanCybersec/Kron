@@ -1,0 +1,12 @@
+# Prometheus scrape config for KRON Nano (all metrics on one target)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: kron-nano
+    static_configs:
+      - targets:
+          - kron-nano:9101
+    labels:
+      deployment: nano

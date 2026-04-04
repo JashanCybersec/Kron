@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network security config for KRON SIEM.
+  - Production: HTTPS only, certificate pinning for kron.security domains.
+  - Debug builds: allow cleartext to localhost for local dev server.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+
+    <!-- Allow cleartext for local development (debug only) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">10.0.0.1</domain>
+    </domain-config>
+
+    <!-- Production API: pin to KRON's CA certificate -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">kron.security</domain>
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

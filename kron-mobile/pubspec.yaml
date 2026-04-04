@@ -1,0 +1,49 @@
+name: kron_mobile
+description: KRON SIEM mobile app — alert feed, SOAR approval, on-call management.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management — Riverpod only (per CLAUDE.md ADR)
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Navigation
+  go_router: ^12.1.3
+
+  # HTTP client
+  dio: ^5.4.0
+
+  # Secure storage (JWT token persistence)
+  flutter_secure_storage: ^9.0.0
+
+  # Biometric authentication (SOAR approval screen)
+  local_auth: ^2.1.7
+
+  # Push notifications
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.9
+
+  # TOTP (MFA login)
+  otp: ^3.1.4
+
+  # Date/time formatting
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  riverpod_generator: ^2.3.9
+  build_runner: ^2.4.7
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/

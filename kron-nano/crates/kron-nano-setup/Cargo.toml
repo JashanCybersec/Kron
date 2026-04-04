@@ -1,0 +1,31 @@
+[package]
+name            = "kron-nano-setup"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description     = "KRON Nano Windows installer — embeds kron-nano.exe and installs it as a Windows Service."
+
+[[bin]]
+name = "kron-nano-setup"
+path = "src/main.rs"
+
+# ── Cross-platform deps (compile on any OS for CI checks) ─────────────────────
+[dependencies]
+anyhow = { workspace = true }
+
+# ── Windows-only runtime deps ─────────────────────────────────────────────────
+[target.'cfg(windows)'.dependencies]
+rsa     = { version = "0.9", features = ["pem"] }
+rand    = "0.8"
+uuid    = { version = "1", features = ["v4"] }
+colored = "2"
+winreg  = "0.52"
+
+# ── Windows-only build deps (embeds UAC manifest + binary) ────────────────────
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
+[lints]
+workspace = true

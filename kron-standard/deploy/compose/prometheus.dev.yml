@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# KRON services expose metrics at /metrics on their metrics port.
+# host.docker.internal resolves to the host machine from inside Docker.
+# Update targets as services are implemented in Phase 1+.
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: [localhost:9090]
+
+  # Phase 1 services — uncomment as each service is implemented
+  # - job_name: kron-collector
+  #   static_configs:
+  #     - targets: [host.docker.internal:9101]
+  #   metrics_path: /metrics
+
+  # - job_name: kron-normalizer
+  #   static_configs:
+  #     - targets: [host.docker.internal:9102]
+
+  # - job_name: kron-stream
+  #   static_configs:
+  #     - targets: [host.docker.internal:9103]
+
+  # - job_name: kron-alert
+  #   static_configs:
+  #     - targets: [host.docker.internal:9104]
+
+  # - job_name: kron-query-api
+  #   static_configs:
+  #     - targets: [host.docker.internal:9105]

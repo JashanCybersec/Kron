@@ -1,0 +1,57 @@
+[package]
+name = "kron-agent"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "eBPF/ETW collection agent for KRON — deployed on monitored endpoints."
+
+[[bin]]
+name = "kron-agent"
+path = "src/main.rs"
+
+[dependencies]
+kron-types = { path = "../../../kron-core/crates/kron-types" }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+bytes = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+metrics = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+tonic = { workspace = true }
+once_cell = { workspace = true }
+xxhash-rust = { workspace = true }
+futures = { workspace = true }
+async-trait = { workspace = true }
+toml = { workspace = true }
+http = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+
+# eBPF userspace loader — Linux only (ADR-005).
+# On other platforms the [ebpf] module is cfg-gated and these deps are unused.
+[target.'cfg(target_os = "linux")'.dependencies]
+aya = { workspace = true }
+aya-log = { workspace = true }
+
+# eBPF interop requires unsafe — scoped to the ebpf module only (ADR-005).
+# Cannot inherit workspace lints and override, so we specify them explicitly here.
+[lints.rust]
+unsafe_code = "allow"
+
+[lints.clippy]
+pedantic = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_docs = "warn"
+missing_errors_doc = "warn"

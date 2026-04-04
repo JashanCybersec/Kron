@@ -1,0 +1,39 @@
+[package]
+name = "kron-normalizer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Event normalization service for KRON — parse, enrich, and publish to enriched topic."
+
+[[bin]]
+name = "kron-normalizer"
+path = "src/main.rs"
+
+[lib]
+name = "kron_normalizer"
+path = "src/lib.rs"
+
+[dependencies]
+kron-types = { path = "../kron-types" }
+kron-bus = { path = "../kron-bus" }
+kron-storage = { path = "../kron-storage" }
+thiserror  = { workspace = true }
+tokio      = { workspace = true }
+tracing    = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow     = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+bytes      = { workspace = true }
+chrono     = { workspace = true }
+uuid       = { workspace = true }
+metrics    = { workspace = true }
+metrics-exporter-prometheus = { workspace = true }
+xxhash-rust = { workspace = true }
+maxminddb  = { workspace = true }
+regex      = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,40 @@
+[package]
+name = "kron-storage"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Storage abstraction for KRON — ClickHouse and DuckDB behind a single trait."
+
+[features]
+default = []
+# Compile in the ClickHouse storage backend (Standard/Enterprise tier).
+# Nano builds omit this feature — no ClickHouse client is linked.
+clickhouse-backend = ["dep:clickhouse"]
+
+[dependencies]
+kron-types    = { path = "../kron-types" }
+thiserror     = { workspace = true }
+async-trait   = { workspace = true }
+tokio         = { workspace = true }
+serde         = { workspace = true, features = ["derive"] }
+serde_json    = { workspace = true }
+chrono        = { workspace = true, features = ["serde"] }
+tracing       = { workspace = true }
+metrics       = { workspace = true }
+duckdb        = { workspace = true }
+uuid          = { workspace = true }
+sha2          = { workspace = true }
+argon2        = { workspace = true }
+rand_core     = { version = "0.6", features = ["getrandom"] }
+# Optional — only compiled in Standard/Enterprise builds via `clickhouse-backend` feature.
+clickhouse    = { version = "0.11", features = ["tls"], optional = true }
+
+[dev-dependencies]
+tempfile      = "3"
+tokio         = { workspace = true }
+testcontainers = { workspace = true }
+
+[lints]
+workspace = true

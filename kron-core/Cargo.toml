@@ -1,0 +1,113 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/kron-types",
+    "crates/kron-storage",
+    "crates/kron-bus",
+    "crates/kron-auth",
+    "crates/kron-ai",
+    "crates/kron-collector",
+    "crates/kron-normalizer",
+    "crates/kron-stream",
+    "crates/kron-alert",
+    "crates/kron-query-api",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Hardik <hardik@kron.security>"]
+license = "Apache-2.0"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1"
+
+# Web framework
+axum = { version = "0.7", features = ["ws", "multipart"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "compression-gzip", "trace", "limit", "timeout", "set-header", "request-id", "util"] }
+tonic = { version = "0.11", features = ["tls"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Logging & tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Metrics
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Database
+# clickhouse is optional inside kron-storage only (clickhouse-backend feature).
+# It is NOT a workspace dep — each consuming crate must enable the feature explicitly.
+duckdb = { version = "0.10", features = ["bundled"] }
+
+# Message bus
+rdkafka = { version = "0.36", features = ["cmake-build", "ssl"] }
+
+# Cryptography
+argon2 = "0.5"
+jsonwebtoken = { version = "10", features = ["use_pem", "rust_crypto"] }
+rustls = { version = "0.23", features = ["ring"] }
+sha2 = "0.10"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+maxminddb = "0.24"
+aes-gcm = "0.10"
+
+# AI/ML
+ort = { version = "2.0.0-rc.12", features = ["load-dynamic"] }
+ndarray = "0.15"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+# Pin <0.4.38: chrono 0.4.38 conflicts with arrow-arith v51 in duckdb 0.10.
+# TODO(#1, hardik, v1.1): Remove chrono upper bound when duckdb is upgraded
+chrono = { version = ">=0.4, <0.4.38", features = ["serde"] }
+regex = "1"
+reqwest = { version = "0.12", features = ["json"], default-features = false }
+clap = { version = "4", features = ["derive"] }
+serde_yaml = "0.9"
+toml = "0.8"
+bytes = "1"
+futures = "0.3"
+async-trait = "0.1"
+once_cell = "1"
+dashmap = "5"
+totp-rs = { version = "5", features = ["gen_secret", "otpauth"] }
+utoipa = { version = "4", features = ["axum_extras", "uuid", "chrono"] }
+utoipa-axum = "0.1"
+utoipa-swagger-ui = { version = "7", features = ["axum"] }
+zip = "0.6"
+testcontainers = "0.15"
+testcontainers-modules = { version = "0.3", features = ["postgres", "redis"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+missing_docs = "warn"
+missing_errors_doc = "warn"

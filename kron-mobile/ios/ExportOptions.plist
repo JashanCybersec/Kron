@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ExportOptions.plist — iOS IPA export configuration for KRON.
+
+  Used by `flutter build ipa` in CI to sign and export the archive.
+  Credentials (certificate, provisioning profile) are injected by
+  apple-actions/import-codesign-certs and apple-actions/download-provisioning-profiles
+  in the GitHub Actions workflow.
+
+  Method: app-store — produces an IPA suitable for TestFlight / App Store submission.
+-->
+<plist version="1.0">
+<dict>
+  <key>method</key>
+  <string>app-store</string>
+
+  <key>teamID</key>
+  <!-- Set APPLE_TEAM_ID in GitHub secrets; this value is the placeholder -->
+  <string>APPLE_TEAM_ID_PLACEHOLDER</string>
+
+  <key>uploadBitcode</key>
+  <false/>
+
+  <key>uploadSymbols</key>
+  <true/>
+
+  <key>compileBitcode</key>
+  <false/>
+
+  <key>signingStyle</key>
+  <string>automatic</string>
+
+  <key>destination</key>
+  <string>export</string>
+</dict>
+</plist>

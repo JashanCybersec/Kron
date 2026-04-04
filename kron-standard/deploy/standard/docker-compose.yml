@@ -1,0 +1,210 @@
+# KRON Standard — Multi-service production deployment
+#
+# Runs each KRON service as a separate container.
+# Requires ClickHouse and Redpanda (provided here via Docker images).
+#
+# Usage:
+#   cp deploy/standard/kron.default.toml /etc/kron/kron.toml
+#   # Edit /etc/kron/kron.toml (set passwords, tenant IDs, notification creds)
+#   docker compose -f deploy/standard/docker-compose.yml up -d
+
+services:
+  # ── Infrastructure ────────────────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24-alpine
+    container_name: kron-clickhouse
+    restart: unless-stopped
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    environment:
+      CLICKHOUSE_DB: kron
+      CLICKHOUSE_USER: kron
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:?Set CLICKHOUSE_PASSWORD in .env}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  redpanda:
+    image: redpandadata/redpanda:v23.3.11
+    container_name: kron-redpanda
+    restart: unless-stopped
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:${REDPANDA_KAFKA_PORT:-9092}
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --smp 2
+      - --memory 2G
+      - --default-log-level=warn
+    ports:
+      - "${REDPANDA_KAFKA_PORT:-9092}:19092"
+      - "${REDPANDA_ADMIN_PORT:-9644}:9644"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ── KRON services ─────────────────────────────────────────────────────────
+  kron-collector:
+    image: kron-collector:latest
+    build:
+      context: ../..
+      dockerfile: deploy/docker/kron-collector.Dockerfile
+    container_name: kron-collector
+    restart: unless-stopped
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+    ports:
+      - "${GRPC_PORT:-50051}:50051"
+      - "${HTTP_INTAKE_PORT:-8081}:8081"
+      - "${SYSLOG_UDP_PORT:-514}:514/udp"
+      - "${SYSLOG_TCP_PORT:-6514}:6514"
+      - "9101:9101"
+    volumes:
+      - kron-config:/etc/kron:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  kron-normalizer:
+    image: kron-normalizer:latest
+    build:
+      context: ../..
+      dockerfile: deploy/docker/kron-normalizer.Dockerfile
+    container_name: kron-normalizer
+    restart: unless-stopped
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+    ports:
+      - "9102:9102"
+    volumes:
+      - kron-config:/etc/kron:ro
+      - kron-geoip:/var/lib/kron/geoip:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  kron-stream:
+    image: kron-stream:latest
+    build:
+      context: ../..
+      dockerfile: deploy/docker/kron-stream.Dockerfile
+    container_name: kron-stream
+    restart: unless-stopped
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+      KRON_STREAM_RULES_DIR: /var/lib/kron/rules
+      KRON_STREAM_MODELS_DIR: /var/lib/kron/models
+      KRON_STREAM_TENANT_IDS: ${KRON_STREAM_TENANT_IDS:-}
+      KRON_STREAM_ALERT_THRESHOLD: ${KRON_STREAM_ALERT_THRESHOLD:-40}
+    ports:
+      - "9103:9103"
+    volumes:
+      - kron-config:/etc/kron:ro
+      - kron-rules:/var/lib/kron/rules:ro
+      - kron-models:/var/lib/kron/models:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  kron-alert:
+    image: kron-alert:latest
+    build:
+      context: ../..
+      dockerfile: deploy/docker/kron-alert.Dockerfile
+    container_name: kron-alert
+    restart: unless-stopped
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+    ports:
+      - "9104:9104"
+    volumes:
+      - kron-config:/etc/kron:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  kron-query-api:
+    image: kron-query-api:latest
+    build:
+      context: ../..
+      dockerfile: deploy/docker/kron-query-api.Dockerfile
+    container_name: kron-query-api
+    restart: unless-stopped
+    environment:
+      KRON_CONFIG: /etc/kron/kron.toml
+    ports:
+      - "${API_PORT:-8080}:8080"
+      - "9105:9105"
+    volumes:
+      - kron-config:/etc/kron:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  # ── Observability ─────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.49.1
+    container_name: kron-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: kron-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../deploy/compose/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../../deploy/compose/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+
+volumes:
+  clickhouse-data:
+  clickhouse-logs:
+  redpanda-data:
+  prometheus-data:
+  grafana-data:
+  kron-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /etc/kron
+  kron-geoip:
+  kron-rules:
+  kron-models:

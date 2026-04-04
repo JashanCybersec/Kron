@@ -1,0 +1,83 @@
+# KRON Standard — Default configuration
+#
+# Copy to /etc/kron/kron.toml and fill in the REQUIRED fields.
+# Standard tier uses ClickHouse for storage and Redpanda for messaging.
+#
+# Required changes:
+#   1. clickhouse.password
+#   2. auth.jwt_private_key_path / jwt_public_key_path (generate RSA-2048 pair)
+#   3. alert.* notification credentials
+#   4. normalizer.raw_tenant_ids (list of tenant UUIDs)
+
+# ── Deployment mode ────────────────────────────────────────────────────────────
+mode = "standard"
+
+# ── ClickHouse ────────────────────────────────────────────────────────────────
+[clickhouse]
+url                        = "http://clickhouse:8123"
+database                   = "kron"
+username                   = "kron"
+password                   = ""              # REQUIRED
+max_connections            = 10
+query_timeout_secs         = 30
+insert_timeout_secs        = 10
+migrations_dir             = "/etc/kron/migrations"
+circuit_breaker_threshold  = 5
+circuit_breaker_recovery_secs = 60
+
+# ── Redpanda / Kafka ──────────────────────────────────────────────────────────
+[redpanda]
+brokers                    = ["redpanda:9092"]
+group_id_prefix            = "kron"
+batch_size                 = 1000
+batch_timeout_ms           = 100
+backpressure_lag_threshold = 100000
+
+# ── Authentication ─────────────────────────────────────────────────────────────
+[auth]
+jwt_private_key_path   = "/etc/kron/jwt.key"      # REQUIRED — RSA-2048 private key PEM
+jwt_public_key_path    = "/etc/kron/jwt.pub"       # REQUIRED — RSA-2048 public key PEM
+jwt_expiry_secs        = 28800
+max_failed_attempts    = 5
+lockout_duration_secs  = 900
+
+# ── Collector ─────────────────────────────────────────────────────────────────
+[collector]
+grpc_addr              = "0.0.0.0:50051"
+http_addr              = "0.0.0.0:8081"
+syslog_udp_addr        = "0.0.0.0:514"
+syslog_tcp_addr        = "0.0.0.0:6514"
+heartbeat_timeout_secs = 90
+metrics_addr           = "0.0.0.0:9101"
+
+# ── Normalizer ────────────────────────────────────────────────────────────────
+[normalizer]
+raw_tenant_ids         = []              # REQUIRED — list your tenant UUIDs here
+geoip_db_path          = "/var/lib/kron/geoip/GeoLite2-City.mmdb"
+asset_cache_ttl_secs   = 300
+asset_cache_size       = 50000
+metrics_addr           = "0.0.0.0:9102"
+
+# ── Alert engine ──────────────────────────────────────────────────────────────
+[alert]
+whatsapp_token             = ""          # REQUIRED for notifications
+whatsapp_phone_id          = ""          # REQUIRED for notifications
+sms_api_key                = ""
+sms_sender_id              = "KRNSEC"
+smtp_host                  = "smtp.example.com"
+smtp_port                  = 587
+smtp_username              = ""
+smtp_password              = ""
+smtp_from                  = "alerts@kron.local"
+max_notifications_per_hour = 10
+
+# ── Query API ─────────────────────────────────────────────────────────────────
+[api]
+listen_addr            = "0.0.0.0:8080"
+max_body_bytes         = 10485760
+cors_origins           = ["*"]
+
+# ── Telemetry ─────────────────────────────────────────────────────────────────
+[telemetry]
+log_level              = "info"
+metrics_addr           = "0.0.0.0:9101"

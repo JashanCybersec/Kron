@@ -1,0 +1,31 @@
+[package]
+name = "kron-ctl"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "CLI management tool for KRON — health checks, event queries, agent management."
+
+[[bin]]
+name = "kron-ctl"
+path = "src/main.rs"
+
+[dependencies]
+kron-types = { path = "../../../kron-core/crates/kron-types" }
+kron-storage = { path = "../../../kron-core/crates/kron-storage", features = ["clickhouse-backend"] }
+kron-bus = { path = "../../../kron-core/crates/kron-bus" }
+thiserror  = { workspace = true }
+tokio      = { workspace = true }
+tracing    = { workspace = true }
+tracing-subscriber = { workspace = true }
+anyhow     = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+chrono     = { workspace = true }
+uuid       = { workspace = true }
+reqwest    = { workspace = true }
+clap       = { workspace = true }
+
+[lints]
+workspace = true
